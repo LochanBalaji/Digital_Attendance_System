@@ -1,6 +1,13 @@
+# import unittest
+# from app import app
+import sys
+import os
 import unittest
-from app import app
 
+# Add the project root directory to sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from app import app 
 class AttendanceAppTestCase(unittest.TestCase):
     def setUp(self):
         app.config['TESTING'] = True
