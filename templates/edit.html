@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Edit Attendance</h2>
+    <p>Current Time: {{ current_time }}</p>
+
+    <form id="attendance-form">
+        <div class="responsive-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>USN</th>
+                        <th>Name</th>
+                        <th>Present Count</th>
+                        <th>Total Classes</th>
+                        <th>Attendance %</th>
+                        <th>Mark</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                    <tr data-usn="{{ student.usn }}">
+                        <td>{{ student.usn }}</td>
+                        <td>{{ student.name }}</td>
+                        <td class="present">{{ student.present_count }}</td>
+                        <td class="total">{{ student.total_classes }}</td>
+                        <td class="percent">
+                            {% if student.total_classes > 0 %}
+                                {{ (student.present_count / student.total_classes * 100)|round(2) }}%
+                            {% else %}
+                                0%
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button type="button" class="present mark-btn" data-status="present">Present</button>
+                            <button type="button" class="absent mark-btn" data-status="absent">Absent</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <br>
+        <div style="text-align:center;">
+            <button type="submit" id="save-button" style="background:#007bff;color:white;border-radius:25px;padding:10px 20px;font-weight:bold;transition:0.3s;">
+                Save Attendance
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.querySelectorAll('.mark-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+        const row = this.closest('tr');
+        const presentCell = row.querySelector('.present');
+        const totalCell = row.querySelector('.total');
+        const percentCell = row.querySelector('.percent');
+
+        let present = parseInt(presentCell.textContent);
+        let total = parseInt(totalCell.textContent);
+
+        if (this.dataset.status === 'present') {
+            present++;
+            total++;
+        } else if (this.dataset.status === 'absent') {
+            total++;
+        }
+
+        presentCell.textContent = present;
+        totalCell.textContent = total;
+        percentCell.textContent = total > 0 ? ((present / total) * 100).toFixed(2) + '%' : '0%';
+
+        row.dataset.status = this.dataset.status;
+
+        // Disable both present and absent buttons after one click
+        row.querySelectorAll('.mark-btn').forEach(button => {
+            button.disabled = true;
+            button.style.opacity = 0.6;
+            button.style.cursor = 'not-allowed';
+        });
+    });
+});
+
+document.getElementById('attendance-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    const rows = document.querySelectorAll('tbody tr');
+    const data = [];
+
+    rows.forEach(row => {
+        const status = row.dataset.status;
+        if (status) {
+            data.push({
+                usn: row.dataset.usn,
+                status: status
+            });
+        }
+    });
+
+    fetch('/update_attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    }).then(res => res.json())
+      .then(data => {
+          alert(data.message);
+          // Redirect to home page after saving
+          window.location.href = "/";
+      });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Course/Class Info and Current Date/Time Box -->
+<div class="info-box">
+    <div>
+        Course: BTech(Hons) CSE<br>
+        Year: 2nd Year<br>
+        Semester: 4th (Even Semester)<br>
+        Academic Year: 2024–2025<br>
+        Section: E<br>
+        Teacher: CSK Sir<br>
+        Subject: Calculus<br>
+        Total Strength: 15 Students
+    </div>
+    <div class="info-date">
+        Current date: Tuesday, May 06, 2025, 9:38 PM IST
+    </div>
+</div>
+
+<div class="container d-flex flex-column align-items-center">
+    <h2 class="mb-3">Student Attendance</h2>
+    <div class="responsive-table" style="width:100%; max-width:1100px;">
+        <table class="table table-bordered table-hover" style="margin:auto; background:white;">
+            <thead class="table-light">
+                <tr>
+                    <th>USN</th>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Last Marked</th>
+                    <th>Total Classes</th>
+                    <th>Percentage</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr data-usn="{{ student.usn }}">
+                    <td>{{ student.usn }}</td>
+                    <td>{{ student.name }}</td>
+                    <td>
+                        {% if records[student.usn] %}
+                            {{ records[student.usn]['status'] }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if records[student.usn] %}
+                            {{ records[student.usn]['datetime'] }}
+                        {% else %}
+                            --
+                        {% endif %}
+                    </td>
+                    <td>{{ student.total_classes }}</td>
+                    <td>
+                        {% if student.total_classes > 0 %}
+                            {{ '%.2f' % ((student.present_count / student.total_classes) * 100) }}%
+                        {% else %}
+                            0.00%
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="btn-group">
+                            <button type="button" class="mark-btn" data-status="present">Present</button>
+                            <button type="button" class="mark-btn" data-status="absent">Absent</button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div style="text-align:center; margin-top: 20px;">
+        <button id="save-attendance" style="background:#007bff;color:white;border-radius:25px;padding:10px 20px;font-weight:bold;transition:0.3s;" disabled>
+            Save Attendance
+        </button>
+    </div>
+
+    <h3 style="margin-top: 40px;">Edit Attendance</h3>
+    <form method="POST" action="{{ url_for('verify_password') }}" style="margin-top:10px;">
+        <input type="password" name="password" placeholder="Enter password" required>
+        <button type="submit">Edit Attendance</button>
+    </form>
+
+    {% if error %}
+    <p class="error">{{ error }}</p>
+    {% endif %}
+</div>
+
+<style>
+/* Info box styling */
+.info-box {
+    max-width: 420px;
+    margin: 30px auto 25px auto;
+    background: #f0f7fb;
+    border: 1.5px solid #3498db;
+    border-radius: 8px;
+    padding: 18px 28px 12px 28px;
+    box-shadow: 0 2px 8px rgba(52,152,219,0.08);
+    text-align: center;
+    font-size: 1.13em;
+    font-weight: 500;
+    color: #222;
+    line-height: 1.6;
+}
+.info-box .info-date {
+    color: #2266aa;
+    font-size: 1.05em;
+    font-weight: bold;
+    margin-top: 10px;
+}
+/* Button group for Present/Absent side by side */
+.btn-group {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+</style>
+
+<script>
+    // Track which students have been marked
+    const markedAttendance = {};
+
+    document.querySelectorAll('.mark-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const row = this.closest('tr');
+            const usn = row.getAttribute('data-usn');
+            const status = this.getAttribute('data-status');
+
+            // Mark as done for this student
+            markedAttendance[usn] = status;
+
+            // Disable both buttons for this student
+            row.querySelectorAll('.mark-btn').forEach(b => {
+                b.disabled = true;
+                b.style.opacity = 0.6;
+                b.style.cursor = 'not-allowed';
+            });
+
+            // Enable Save button if at least one student is marked
+            document.getElementById('save-attendance').disabled = Object.keys(markedAttendance).length === 0;
+        });
+    });
+
+    document.getElementById('save-attendance').addEventListener('click', function () {
+        const data = [];
+        for (const usn in markedAttendance) {
+            data.push({ usn: usn, status: markedAttendance[usn] });
+        }
+        if (data.length === 0) return;
+
+        fetch('/update_attendance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+        .then(res => res.json())
+        .then(result => {
+            alert(result.message);
+            window.location.reload();
+        });
+    });
+
+    // Optional: Automatically enable/disable Save button if needed
+    const observer = new MutationObserver(() => {
+        document.getElementById('save-attendance').disabled = Object.keys(markedAttendance).length === 0;
+    });
+    observer.observe(document.body, { childList: false, subtree: true, attributes: true });
+</script>
+{% endblock %}

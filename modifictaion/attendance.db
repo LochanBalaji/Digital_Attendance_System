@@ -1,0 +1,61 @@
+import sqlite3
+import random
+from datetime import datetime
+
+# Connect to database
+conn = sqlite3.connect('attendance.db')
+cursor = conn.cursor()
+
+# Create summary table
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS attendance_summary (
+        usn TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        total_classes INTEGER DEFAULT 0,
+        present_count INTEGER DEFAULT 0
+    )
+""")
+
+# Create records table
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS attendance_records (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        usn TEXT NOT NULL,
+        name TEXT NOT NULL,
+        datetime TEXT NOT NULL,
+        status TEXT NOT NULL
+    )
+""")
+
+# Sample student data
+student_names = [
+    "Aadhya Nair", "Aarav Kumar", "Aditya Singh", "Anaya Mehta", "Arjun Patel",
+    "Atharv Bhat", "Ayaan Ghosh", "Ishita Dutta", "Kabir Menon", "Krishna Verma",
+    "Meher Paul", "Myra Joshi", "Navya Kapoor", "Reyansh Reddy", "Saanvi Sharma"
+]
+
+# Insert into attendance_summary with fake initial data
+for i, name in enumerate(student_names):
+    usn = f"1RV21CS{str(i+1).zfill(3)}"
+    total = random.randint(10, 20)
+    present = random.randint(0, total)
+    
+    cursor.execute("""
+        INSERT OR IGNORE INTO attendance_summary (usn, name, total_classes, present_count)
+        VALUES (?, ?, ?, ?)
+    """, (usn, name, total, present))
+
+# Optional: populate attendance_records with dummy past entries
+for i in range(5):  # 5 records per student
+    for idx, name in enumerate(student_names):
+        usn = f"1RV21CS{str(idx+1).zfill(3)}"
+        dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        status = random.choice(["present", "absent"])
+        cursor.execute("""
+            INSERT INTO attendance_records (usn, name, datetime, status)
+            VALUES (?, ?, ?, ?)
+        """, (usn, name, dt, status))
+
+conn.commit()
+conn.close()
+print("Database initialized successfully.")
